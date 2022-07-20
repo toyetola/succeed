@@ -205,10 +205,20 @@ Resources:
       Properties:
           RouteTableId: !Ref PrivateRouteTable2
           SubnetId: !Ref PrivateSubnet2
+
+  PrivateRouteTable3:
+      Type: AWS::EC2::RouteTable
+      Properties: 
+          VpcId: !Ref VPC
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${EnvironmentName} Private Routes (AZ2)
+
+
   DefaultPrivateRoute3:
       Type: AWS::EC2::Route
       Properties:
-          RouteTableId: !Ref PrivateRouteTable2
+          RouteTableId: !Ref PrivateRouteTable3
           DestinationCidrBlock: 0.0.0.0/0
           NatGatewayId: !Ref NatGateway3
 
@@ -298,3 +308,11 @@ Resources:
       - !Ref PublicSubnet3
       SecurityGroups:
       - Ref: LBSecGroup
+  WebAppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0d5eff06f840b45e9 
+      InstanceType: t2.micro
+      # KeyName: jenna
+      # SecurityGroupIds:
+      #   - !Ref WebServerSecGroup
