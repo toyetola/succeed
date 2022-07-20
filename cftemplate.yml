@@ -1,3 +1,5 @@
+AWSTemplateFormatVersion: 2010-09-09
+
 Parameters:
   EnvironmentName:
       Description: An environment name that will be used in front of some other resource names
@@ -314,5 +316,17 @@ Resources:
       ImageId: ami-0d5eff06f840b45e9 
       InstanceType: t2.micro
       # KeyName: jenna
-      # SecurityGroupIds:
-      #   - !Ref WebServerSecGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install apache2 -y
+          systemctl start apache2.service
+          cd /var/www/html
+          echo "Udacity Demo Web Server Up and Running!" > index.html
+      SecurityGroupIds:
+        - !Ref WebServerSecGroup
+      NetworkInterfaces:
+        - SubnetId: !Ref PublicSubnet1
+      
+  
