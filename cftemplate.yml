@@ -310,23 +310,72 @@ Resources:
       - !Ref PublicSubnet3
       SecurityGroups:
       - Ref: LBSecGroup
-  WebAppInstance:
+  WebAppInstance1:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-0d5eff06f840b45e9 
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      ImageId: ami-0d5eff06f840b45e9  
       InstanceType: t2.micro
-      # KeyName: jenna
-      UserData:
+      SecurityGroups:
+        - !Ref EC2SecurityGroup
+      # KeyName: !Ref KeyName
+      UserData: 
         Fn::Base64: !Sub |
           #!/bin/bash
           apt-get update -y
           apt-get install apache2 -y
           systemctl start apache2.service
           cd /var/www/html
-          echo "Udacity Demo Web Server Up and Running!" > index.html
-      SecurityGroupIds:
-        - !Ref WebServerSecGroup
-      NetworkInterfaces:
-        - SubnetId: !Ref PublicSubnet1
-      
+          echo "Demo Web Server Up and Running!" > index.html
+  WebAppInstance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      ImageId: ami-0d5eff06f840b45e9  
+      InstanceType: t2.micro
+      SecurityGroups:
+        - !Ref EC2SecurityGroup
+      # KeyName: !Ref KeyName
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install apache2 -y
+          systemctl start apache2.service
+          cd /var/www/html
+          echo "Demo Web Server Up and Running!" > index.html
+  WebAppInstance3:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !Select [ 2, !GetAZs '' ]
+      ImageId: ami-0d5eff06f840b45e9  
+      InstanceType: t2.micro
+      SecurityGroups:
+        - !Ref EC2SecurityGroup
+      # KeyName: !Ref KeyName
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install apache2 -y
+          systemctl start apache2.service
+          cd /var/www/html
+          echo "Demo Web Server Up and Running!" > index.html
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "ec2 security group"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        SourceSecurityGroupId: 
+          Fn::GetAtt:
+          - LBSecGroup
+          - GroupId
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
   
