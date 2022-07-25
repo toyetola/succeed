@@ -31,6 +31,13 @@ Parameters:
       Description: IP range (CIDR notation) for the private subnet in the third Availability Zone
       Type: String
 
+Mappings:
+  RegionMap:
+    us-east-1:
+     "AMI": "ami-0742b4e673072066f"
+    us-west-2:
+     "AMI": "ami-0518bb0e75d3619ca"
+
 Resources:
   VPC: 
     Type: AWS::EC2::VPC
@@ -118,18 +125,18 @@ Resources:
           Tags: 
               - Key: Name 
                 Value: !Sub ${EnvironmentName} Private Subnet (AZ2)
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-        Tags:
-            - Key: Name
-              Value: !Ref EnvironmentName
+  # InternetGateway:
+  #   Type: AWS::EC2::InternetGateway
+  #   Properties:
+  #       Tags:
+  #           - Key: Name
+  #             Value: !Ref EnvironmentName
             
-  InternetGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-        InternetGatewayId: !Ref InternetGateway
-        VpcId: !Ref VPC
+  # InternetGatewayAttachment:
+  #   Type: AWS::EC2::VPCGatewayAttachment
+  #   Properties:
+  #       InternetGatewayId: !Ref InternetGateway
+  #       VpcId: !Ref VPC
   NatGateway1EIP:
     Type: AWS::EC2::EIP
     DependsOn: InternetGatewayAttachment
@@ -289,17 +296,17 @@ Resources:
         !Ref VPC
       SecurityGroupIngress:
       - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
+        FromPort: '80'
+        ToPort: '80'
         CidrIp: 0.0.0.0/0
       - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
+        FromPort: '22'
+        ToPort: '22'
         CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
       - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
+        FromPort: '80'
+        ToPort: '80'
         CidrIp: 0.0.0.0/0
   WebAppLB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -310,72 +317,139 @@ Resources:
       - !Ref PublicSubnet3
       SecurityGroups:
       - Ref: LBSecGroup
+
   WebAppInstance1:
     Type: AWS::EC2::Instance
     Properties:
-      AvailabilityZone: !Select [ 0, !GetAZs '' ]
-      ImageId: ami-0d5eff06f840b45e9  
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI]
       InstanceType: t2.micro
-      SecurityGroups:
-        - !Ref EC2SecurityGroup
-      # KeyName: !Ref KeyName
-      UserData: 
+      SubnetId: !Ref PrivateSubnet1
+      SecurityGroupIds: 
+        - !Ref WebServerSecGroup
+      Tags:
+       - Key: Name
+         Value: EC2 Instance One     
+      UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash
-          apt-get update -y
-          apt-get install apache2 -y
-          systemctl start apache2.service
-          cd /var/www/html
-          echo "Demo Web Server Up and Running!" > index.html
+            #!/bin/bash
+            yum install httpd -y
+            service httpd start  
+            echo "<html><body><h1>Hello from Instance 1 Region ${AWS::Region}<h1></body></html>" > /var/www/html/index.html
+
   WebAppInstance2:
     Type: AWS::EC2::Instance
     Properties:
-      AvailabilityZone: !Select [ 1, !GetAZs '' ]
-      ImageId: ami-0d5eff06f840b45e9  
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI]
       InstanceType: t2.micro
-      SecurityGroups:
-        - !Ref EC2SecurityGroup
-      # KeyName: !Ref KeyName
-      UserData: 
+      SubnetId: !Ref PrivateSubnet2
+      SecurityGroupIds: 
+        - !Ref WebServerSecGroup
+      Tags:
+       - Key: Name
+         Value: EC2 Instance Two   
+      UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash
-          apt-get update -y
-          apt-get install apache2 -y
-          systemctl start apache2.service
-          cd /var/www/html
-          echo "Demo Web Server Up and Running!" > index.html
+            #!/bin/bash
+            yum install httpd -y
+            service httpd start  
+            echo "<html><body><h1>Hello from Instance 2 Region ${AWS::Region}<h1></body></html>" > /var/www/html/index.html
+
   WebAppInstance3:
     Type: AWS::EC2::Instance
     Properties:
-      AvailabilityZone: !Select [ 2, !GetAZs '' ]
-      ImageId: ami-0d5eff06f840b45e9  
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI]
       InstanceType: t2.micro
-      SecurityGroups:
-        - !Ref EC2SecurityGroup
-      # KeyName: !Ref KeyName
-      UserData: 
+      SubnetId: !Ref PrivateSubnet3
+      SecurityGroupIds: 
+        - !Ref WebServerSecGroup
+      Tags:
+       - Key: Name
+         Value: EC2 Instance Three    
+      UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash
-          apt-get update -y
-          apt-get install apache2 -y
-          systemctl start apache2.service
-          cd /var/www/html
-          echo "Demo Web Server Up and Running!" > index.html
+            #!/bin/bash
+            yum install httpd -y
+            service httpd start  
+            echo "<html><body><h1>Hello from Instance 3 Region ${AWS::Region}<h1></body></html>" > /var/www/html/index.html
+# Outputs:
+#   PublicIp1:
+#     Description: EC2 Instance Public Ip
+#     Value: !GetAtt WebAppInstance1.PublicIp
+#   PublicIp2:
+#     Description: EC2 Instance Public Ip
+#     Value: !GetAtt WebAppInstance1.PublicIp
+#   PublicIp3:
+#     Description: EC2 Instance Public Ip
+#     Value: !GetAtt WebAppInstance1.PublicIp
+    
+  # EC2SecurityGroup:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties:
+  #     GroupDescription: "ec2 security group"
+  #     SecurityGroupIngress:
+  #     - IpProtocol: tcp
+  #       FromPort: '80'
+  #       ToPort: '80'
+  #       CidrIp: 0.0.0.0/0
+  #       # SourceSecurityGroupId: 
+  #       #   Fn::GetAtt:
+  #       #   - LBSecGroup
+  #       #   - GroupId
+  #     - IpProtocol: tcp
+  #       FromPort: '22'
+  #       ToPort: '22'
+  #       CidrIp: 0.0.0.0/0
+  # WebAppInstance1:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     AvailabilityZone: !Select [ 0, !GetAZs '' ]
+  #     ImageId: ami-1ecae776
+  #     InstanceType: t2.micro
+  #     SecurityGroups:
+  #       - !Ref EC2SecurityGroup
+  #     # KeyName: !Ref KeyName
+  #     UserData: 
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash
+  #         apt-get update -y
+  #         apt-get install apache2 -y
+  #         systemctl start apache2.service
+  #         cd /var/www/html
+  #         echo "Demo Web Server Up and Running!" > index.html
+  # WebAppInstance2:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     AvailabilityZone: !Select [ 1, !GetAZs '' ]
+  #     ImageId: ami-1ecae776  
+  #     InstanceType: t2.micro
+  #     SecurityGroups:
+  #       - !Ref EC2SecurityGroup
+  #     # KeyName: !Ref KeyName
+  #     UserData: 
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash
+  #         apt-get update -y
+  #         apt-get install apache2 -y
+  #         systemctl start apache2.service
+  #         cd /var/www/html
+  #         echo "Demo Web Server Up and Running!" > index.html
+  # WebAppInstance3:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     AvailabilityZone: !Select [ 2, !GetAZs '' ]
+  #     ImageId: ami-1ecae776
+  #     InstanceType: t2.micro
+  #     SecurityGroups:
+  #       - !Ref EC2SecurityGroup
+  #     # KeyName: !Ref KeyName
+  #     UserData: 
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash
+  #         apt-get update -y
+  #         apt-get install apache2 -y
+  #         systemctl start apache2.service
+  #         cd /var/www/html
+  #         echo "Demo Web Server Up and Running!" > index.html
 
-  EC2SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: "ec2 security group"
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        SourceSecurityGroupId: 
-          Fn::GetAtt:
-          - LBSecGroup
-          - GroupId
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        CidrIp: 0.0.0.0/0
+  
   
